@@ -1,12 +1,12 @@
 # Lyft Agent movement prediction using Recurrent Neural Networks and Attention 
 
-This repository contains the models used by me in the [Lyft Kaggle competition](https://www.kaggle.com/c/lyft-motion-prediction-autonomous-vehicles). It is not a top-performer model, the score in the competition (likelihood) was ~190 (top 700). I ran out of training time...
+This repository contains the models that I used in the [Lyft Kaggle](https://www.kaggle.com/c/lyft-motion-prediction-autonomous-vehicles) competition. It is not a top-performing model; its competition score (likelihood) was 190 (top 700).
 
- As opposed to most models of the competition I used RNNs and I tried to follow two papers from Sadeghian. I created the models from scratch, mostly for fun and to experiment with recurrent neural networks and attention. I learned many things about RNN training, like clipping gradients during the backward pass and not at the end, using stateful units anf apply visual and self attention.
+In contrast to the majority of the competitors' models, I employed RNNs and attempted to follow two Sadeghian publications. I built the models from the ground up, largely for fun and to experiment with recurrent neural networks and attention. I learnt a lot about RNN training, such as trimming gradients during the backward pass rather than at the end, employing stateful units, and applying visual and self attention.
 
-The trained models used to reproduce my results are provided [here](https://mega.nz/file/LxlW1AbD#d1NIrplSP3fUcdVZ0GOEKNm1yGmnH-c7vSkE5GTDrBM). They should be decompressed in the root of the repository.
+The trained models that were used to replicate my results are available in the TrainedModel directory. They should be decompressed in the repository's root directory.
 
-Many things are left to be done, such as more carefully selecting the training data, create a multiple path prediction model and not relaying too much on the history path. These things turned to be really important.
+More work need to be done, such as carefully selecting the training data, constructing a multiple route prediction model, and not depending too much on the previous path. These particulars proved significant.
 
 
 # Table of Contents
@@ -15,28 +15,28 @@ Many things are left to be done, such as more carefully selecting the training d
 
 # Overview
 
-The competition required to estimate the future positions of a given agent (car, pedestrian or cyclist). The prediction had to extend 5 s into the future. The input information was an aerial map of the terrain, a semantic map, the position of the agent in the map, the position of other agents in the map and the history positions of the agents (around 10 s into the past). The expected use of this network is to estimate future positions of agents around an autonomous vehicle.
+The competition requires to forecast a given agent's future placements (vehicle, pedestrian, or bike). The forecast has to be 5 seconds in the future. An aerial map of the landscape, a semantic map, the location of the agent in the map, the position of other agents in the map, and the history positions of the agents (approximately 10 seconds in the past) were used as input. This network is planned to be used to predict the future locations of agents in the vicinity of an autonomous vehicle.
 
-To train the models, Lyft provided a [big dataset](https://self-driving.lyft.com/level5/download/), a [nice library](https://github.com/lyft/l5kit) and [documentation](https://lyft.github.io/l5kit/). They are both required to run this code.
+Lyft offered a [large dataset](https://self-driving.lyft.com/level5/download/), a [good library](https://github.com/lyft/l5kit), and [documentation](https://lyft.github.io/l5kit/) to train the models. They must both execute this code.
 
 
 ### Results
 
-This library contains multiple models, however I only managed to train one (they require a lot of computation...). The tested model was the V2 model without attention (more information below). The inputs of the model havethe following shape:
+This library has several models, however I was only able to train one (they take a lot of compute...). The model that was tested was the V2 model with no attention (additional details below). The model's inputs are shaped as follows:
 
 <img src="./images/inputs.svg" width="800">
 
 
-The first image is the input semantic map, followed by the fade image of the Ego agent (the agent to be predicted) and the fade image of the other agents. In the semantic map the historical positions are marked in green (actually the network receives them as value data). The expected output of this sample is:
+The input semantic map is shown first, followed by the fade image of the Ego agent (the agent to be predicted) and the fade images of the other agents. The historical coordinates are shown in green on the semantic map (the network gets them as value data). This sample's anticipated output is:
 
 <img src="./images/target.svg" width="400">
 
-where the target path is shown in pink (?). The output of the network was the following (in cyan):
+when the goal route is shown in pink (? The network produced the following results (in cyan):
 
 <img src="./images/taget_and_pred.svg" width="400">
 
 
-Some other examples:
+Examples:
 
 ok:
 <img src="./images/all_ok_1.svg" width="800">
@@ -52,11 +52,11 @@ ok (here it turned ok, because it was already turning):
 
 ### Base model
 
-The base model is a model based on the Lyft baseline, it is composed of a convolutional network for feature extraction, an average pooling layer and a fully connected layer for predicting each next step. The network only predicts a fixed amount of future steps and ignores the history positions.
+The basic model is built on the Lyft baseline and is made up of a convolutional network for feature extraction, an average pooling layer, and a fully connected layer for forecasting each subsequent step. The network predicts just a limited number of future steps and ignores previous placements.
 
 <img src="./images/base_model_diag.png" width="400">
 
-The input is an image of size NxN with 3 RGB channels from the semantic or aerial map, one channel for the current Ego position, one channel for the current agents positions and two additional channels for each history point, with the Ego and Agents positions. The input is fed to the *Image Encoding Network* (a pre-trained convolutional neural network), then its outputs are averaged and a feature tensor is obtained, which is fed to the *Path Decoder Network*, consisting of two fully connected layers. The output is a vector of coordinates with T time steps.
+The input is a NxN picture with three RGB channels from the semantic or aerial map, one for the present Ego position, one for the current Agents position, and two more for each historical point, with the Ego and Agents positions. The input is supplied into the *Image Encoding Network* (a pre-trained convolutional neural network), and the outputs are averaged to produce a feature tensor, which is then fed into the *Path Decoder Network*, which is made up of two fully connected layers. The result is a coordinate vector with T time steps.
 
 
 ### Model V1
@@ -65,18 +65,19 @@ The model V1 is a free interpretation of two papers,  [sadeghian2018car](https:/
 
 <img src="./images/V1_model_diag.png" width="600">
 
-This model uses a *History Path Encoding Network* which encodes the path coordinates and creates a feature tensor. This network can be recurrent or not (if it is not recurrent the network is basically a CarNet). The graphical input is fed to the *Image Encoding Network*, a pre-trained convolutional neural network, which creates a feature map that can be processed by an attention layer (Bahdanau) or average pooled. Then this information is fed to the *Path Decoder Network*, a recurrent network that generates the next step coordinates. The generated coordinates are fed back to the network via the *History PAth Encoding Network*.
-This network was a short test, I latter decided in favor of the V2 model, however it has the capability of imitate a CarNet.
+The *History Path Encoding Network* is used in this model to encode the path coordinates and generate a feature tensor. This network can be recurrent or not (if not, the network is essentially a CarNet). The *Image Encoding Network*, a pre-trained convolutional neural network, receives the graphical input and generates a feature map that may be processed by an attention layer (Bahdanau) or average pooled. This data is then input into the *Path Decoder Network*, a recurrent network that calculates the next step coordinates. The *History PAth Encoding Network* feeds the created coordinates back into the network.
+This network was a quick test, and I eventually opted to go with the V2 model, although it can simulate a CarNet.
 
 
 ### Model V2
 
-The final model (and most succesfull of my tests) is the V2. It combines the concept of the SOPHIE net, with the possibility of using an external speed and acceleration estimation model (MRUV, from the spanish Movimiento Rectilineo Uniformemente Variado). 
+The V2 is the final model (and the most successful of my experiments). It combines the SOPHIE net principle with the ability to use an external speed and acceleration estimate model (MRUV, which stands for Movimiento Rectilineo Uniformemente Variado in Spanish). 
 
 <img src="./images/V2_model_diag.png" width="800">
 
-The history input is processed by the *History Path Encoding Network*, a recurrent neural network that processes all the history path and generates tensor of features. The history features are processed by an attention mechanism (or average pooling) before being fed to the *Path Decoder Network*. It was expected that the hidden state of this network could be used to initialize the hidden state of the *Path Decoder Network*, however this is bugged in TensorFlow (when working in graph mode). 
-The image input is processed by the *Image Encoding Network* just as in the model V1. The history and image features are concatenated and fed to the *Path Decoder Network*. The *Path Decoder Network* can also receive data from the *MRUV estimation model*, this block represents a neural network which analyses the feature tensor and tries to estimate the speed and acceleration of the agent. Then, at each predicted step, the *MRUV estimation model* feeds the *Path Decoder Network* the expected position of the agent if it where following a uniform linear path. The *MRUV estimation model* is trained along the path decoder network, using a simple speed and acceleration estimation based on the history path.
+The *History Path Encoding Network*, a recurrent neural network that analyzes the whole history path and creates a tensor of features, processes the history input. Before being sent to the *Path Decoder Network*, the historical characteristics are processed by an attention mechanism (or average pooling). The hidden state of this network was anticipated to be utilized to establish the hidden state of the *Path Decoder Network*, but this is a defect in TensorFlow (when working in graph mode). 
+The *picture Encoding Network*, like in model V1, processes the picture input. The picture and history characteristics are combined and supplied into the *Path Decoder Network*. The *Path Decoder Network* can also accept data from the *MRUV estimation model*, which is a neural network that analyzes the feature tensor and attempts to predict the agent's speed and acceleration. The *MRUV estimation model* then gives the *Path Decoder Network* the expected position of the agent if it were following a uniform linear path at each forecasted step. The *MRUV estimation model* is trained using a basic speed and acceleration estimation based on the past route along the path decoder network.
+
 
 
 # Code_Description
