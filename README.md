@@ -38,16 +38,16 @@ when the goal route is shown in pink (? The network produced the following resul
 
 Examples:
 
-ok:
+OK:
 <img src="./images/all_ok_1.svg" width="800">
 
-under shot:
+Under Shot:
 <img src="./images/all_not_1.svg" width="800">
 
-crashed (it forgot to turn):
+Crashed (Didn't turn):
 <img src="./images/all_not_2.svg" width="800">
 
-ok (here it turned ok, because it was already turning):
+OK (Here it turned ok, because it was already turning):
 <img src="./images/all_ok_2.svg" width="800">
 
 ### Base model
